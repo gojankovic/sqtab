@@ -7,6 +7,8 @@ Commands are currently skeletons and will be implemented in future commits.
 
 import os
 import sqlite3
+from typing import List, Optional
+
 import typer
 
 from datetime import datetime
@@ -162,41 +164,83 @@ def tables_command(schema: bool = typer.Option(False, "--schema", help="Show tab
 @app.command("analyze")
 def analyze_command(
     table: str,
-    ai: bool = typer.Option(False, "--ai", help="Use AI to analyze the table"),
+    ai: bool = typer.Option(False, "--ai", help="Enable AI-based analysis"),
+    task: List[str] = typer.Option(None, "--task", help="Custom analysis tasks (can be repeated)"),
+    rule: List[str] = typer.Option(None, "--rule", help="Custom AI rules (can be repeated)"),
+    tasks_file: Optional[Path] = typer.Option(None, "--tasks-file", help="File containing tasks"),
+    rules_file: Optional[Path] = typer.Option(None, "--rules-file", help="File containing rules"),
 ):
     """
-    Analyze a table: show schema, row count, and optionally run AI analysis.
+    Analyze a table. With --ai, run AI-based interpretation with optional custom tasks & rules.
     """
     info = analyze_table(table)
 
-    # Print normal analysis
     console = Console()
     console.print(f"Table: {table}")
     console.print(f"Rows: {info['row_count']}")
     console.print(f"Columns: {len(info['schema'])}")
 
+    # Schema table output
     schema_table = Table("Name", "Type", "Not Null", "Primary Key")
     for col in info["schema"]:
         schema_table.add_row(
             col["name"],
             col["type"],
             str(col["not_null"]),
-            str(col["primary_key"])
+            str(col["primary_key"]),
         )
     console.print(schema_table)
 
-    # AI mode
-    if ai:
-        console.print("\n[bold cyan]AI Analysis Report[/bold cyan]\n")
-        ai_text = run_ai_analysis(table, info)
+    # Samples preview (max 5)
+    console.print("\nSample rows (max 5):")
+    for row in info["samples"][:5]:
+        console.print(row)
 
-        console.print(
-            Panel(
-                Markdown(ai_text),
-                title="[green]AI Insights[/green]",
-                border_style="bright_blue"
-            )
-        )
+    if not ai:
+        console.print("\nAI analysis not requested. Use --ai to enable.")
+        return
+
+    # ---- Prepare AI tasks ----
+    tasks = list(task or [])
+
+    if tasks_file:
+        if tasks_file.exists():
+            with open(tasks_file, "r", encoding="utf-8") as f:
+                tasks.extend([line.strip() for line in f.readlines() if line.strip()])
+        else:
+            console.print(f"[red]Tasks file not found: {tasks_file}[/red]")
+
+    # ---- Prepare AI rules ----
+    rules = list(rule or [])
+
+    if rules_file:
+        if rules_file.exists():
+            with open(rules_file, "r", encoding="utf-8") as f:
+                rules.extend([line.strip() for line in f.readlines() if line.strip()])
+        else:
+            console.print(f"[red]Rules file not found: {rules_file}[/red]")
+
+    # If user provided nothing → use defaults
+    if not tasks:
+        tasks = [
+            "Describe the purpose of the table.",
+            "Interpret column meanings.",
+            "Identify potential data quality issues.",
+            "Suggest useful analytical SQL queries."
+        ]
+
+    if not rules:
+        rules = [
+            "Write answers in Markdown.",
+            "Be precise and structured.",
+        ]
+
+    # ---- Run AI ----
+    console.print("\nRunning AI analysis...\n")
+
+    ai_result = run_ai_analysis(table, info, tasks=tasks, rules=rules)
+    console.print(ai_result)
+
 
 
 @app.command("info")

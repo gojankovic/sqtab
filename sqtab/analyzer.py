@@ -9,11 +9,26 @@ This is the initial skeleton; full implementation will follow.
 """
 import json
 import os
+from pathlib import Path
+from typing import List
 
 from sqtab.db import get_conn
-from textwrap import dedent
 from openai import OpenAI
 
+SYSTEM_PROMPT = """
+You are an expert data analyst. 
+Provide accurate, structured, concise analysis.
+Do not hallucinate.
+Only comment on columns and rows provided.
+Output must follow tasks and rules strictly.
+"""
+
+from .prompt_utils import (
+    load_prompt_template,
+    schema_to_markdown,
+    samples_to_markdown,
+    validate_list,
+)
 
 def analyze_table(table: str) -> dict:
     """
@@ -68,125 +83,47 @@ def analyze_table(table: str) -> dict:
     }
 
 
-def run_ai_analysis(
-    table: str,
-    info: dict,
-    tasks: list[str] | None = None,
-    rules: list[str] | None = None,
-) -> str:
+def run_ai_analysis(table: str, info: dict, tasks: List[str], rules: List[str]) -> str:
     """
-    Generate an AI interpretation of table structure and sample data.
-    Users can optionally override TASKS and RULES for fully custom analysis.
-    Requires OPENAI_API_KEY to be set.
+    Perform AI analysis using prompt templates, markdown formatting,
+    and validated tasks/rules.
     """
 
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return "AI analysis unavailable: please set OPENAI_API_KEY in .env"
 
+    # Validate inputs
+    tasks = validate_list("Tasks", tasks)
+    rules = validate_list("Rules", rules)
+
+    # Load prompt template
+    template_path = Path(__file__).parent / "prompts" / "default.md"
+    template = load_prompt_template(template_path)
+
+    # Prepare variables
+    schema_md = schema_to_markdown(info["schema"])
+    samples_md = samples_to_markdown(info["samples"])
+
+    context = {
+        "table": table,
+        "schema": schema_md,
+        "samples": samples_md,
+        "tasks": "\n".join(f"- {t}" for t in tasks),
+        "rules": "\n".join(f"- {r}" for r in rules),
+    }
+
+    # Fill template
+    user_prompt = template.format(**context)
+
     client = OpenAI(api_key=api_key)
 
-    # -----------------------
-    # DEFAULT TASKS & RULES
-    # -----------------------
-    default_tasks = [
-        "Describe the purpose of this table.",
-        "Interpret column meanings.",
-        "Identify potential data issues (nulls, outliers, inconsistencies).",
-        "Suggest 3–5 useful SQL queries for exploring this data.",
-    ]
-
-    default_rules = [
-        "Respond using clean and properly structured Markdown.",
-        "SQL queries must be valid SQLite syntax.",
-        "Do not invent columns or data that do not exist.",
-        "Be analytical, factual, and concise.",
-    ]
-
-    tasks = tasks or default_tasks
-    rules = rules or default_rules
-
-    # Format TASKS and RULES as Markdown lists
-    tasks_md = "\n".join(f"- {t}" for t in tasks)
-    rules_md = "\n".join(f"- {r}" for r in rules)
-
-    # Helper converts first 5 rows to Markdown table
-    schema_md = render_schema_md(info["schema"])
-    samples_md = render_samples_md(info["samples"])
-
-    # -----------------------
-    # BUILD PROMPT
-    # -----------------------
-    prompt = dedent(f"""
-    You are a senior data analyst helping a user understand SQLite data.
-
-    ## TABLE NAME
-    {table}
-
-    ## SCHEMA
-    {schema_md}
-
-    ## SAMPLE ROWS
-    {samples_md}
-
-    ## TASKS
-    {tasks_md}
-
-    ## RULES
-    {rules_md}
-    """)
-
-    # -----------------------
-    # OPENAI CALL
-    # -----------------------
     response = client.chat.completions.create(
         model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt},
+        ]
     )
 
     return response.choices[0].message.content.strip()
-
-
-
-def format_samples_md(samples: list) -> str:
-    """
-    Convert sample rows into a compact Markdown table.
-    """
-    if not samples:
-        return "_No sample rows available._"
-
-    headers = samples[0].keys()
-    header_row = " | ".join(headers)
-    separator = " | ".join(["---"] * len(headers))
-
-    data_rows = []
-    for row in samples:
-        data_rows.append(" | ".join(str(row[h]) for h in headers))
-
-    return "\n".join([header_row, separator] + data_rows)
-
-def render_schema_md(schema: list[dict]) -> str:
-    """Render schema into a clean Markdown table."""
-    lines = ["| Name | Type | Not Null | Primary Key |", "|---|---|---|---|"]
-    for col in schema:
-        lines.append(
-            f"| {col['name']} | {col['type']} | {col['not_null']} | {col['primary_key']} |"
-        )
-    return "\n".join(lines)
-
-
-def render_samples_md(samples: list[dict]) -> str:
-    """Render sample rows into a Markdown table."""
-    if not samples:
-        return "_No sample rows available_"
-
-    columns = samples[0].keys()
-    header = "| " + " | ".join(columns) + " |"
-    separator = "| " + " | ".join("---" for _ in columns) + " |"
-
-    rows = []
-    for row in samples[:5]:  # limit 5 rows for clarity
-        rows.append("| " + " | ".join(str(row[col]) for col in columns) + " |")
-
-    return "\n".join([header, separator] + rows)
-
