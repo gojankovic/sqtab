@@ -17,10 +17,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Remove pip & local build cache
+        run: |
+          rm -rf ~/.cache/pip
+          rm -rf dist build *.egg-info
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Uninstall any pre-installed sqtab
+        run: pip uninstall -y sqtab || true
 
       - name: Install build dependencies
         run: |
@@ -29,6 +37,9 @@ jobs:
 
       - name: Build distributions
         run: python -m build
+
+      - name: Show generated dist contents
+        run: ls -R dist
 
       - name: Publish to PyPI (Trusted Publisher)
         uses: pypa/gh-action-pypi-publish@v1.10.0
