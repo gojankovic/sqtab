@@ -117,6 +117,33 @@ def sql_command(query: str):
         conn.close()
 
 
+@app.command("tables")
+def tables_command():
+    """
+    List all tables in the SQLite database.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+    rows = cur.fetchall()
+    conn.close()
+
+    if not rows:
+        typer.echo("No tables found.")
+        return
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Table Name")
+
+    for (name,) in rows:
+        table.add_row(name)
+
+    console.print(table)
+
+    log("Listed all tables.")
+
+
 @app.command("analyze")
 def analyze_command(table: str):
     """
