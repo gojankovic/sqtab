@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+database.db
+.env
+
+# Virtual environments
+venv/
+.env/
+.virtualenv/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+.idea
