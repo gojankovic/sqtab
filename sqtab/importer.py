@@ -27,6 +27,7 @@ def import_file(path: str, table: str) -> Optional[int]:
     Optional[int]
         Number of rows imported, or None if no rows were processed.
     """
+    path = str(path)
     path_lower = path.lower()
 
     if path_lower.endswith(".csv"):
