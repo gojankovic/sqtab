@@ -52,6 +52,18 @@ def export_command(table: str, csv: str = None, json: str = None):
 
     log(f"Export called for table={table}, csv={csv}, json={json}")
 
+@app.command("export")
+def export_cmd(table: str, path: str):
+    """
+    Export a SQLite table to CSV or JSON. (CSV implemented)
+    """
+    if path.lower().endswith(".csv"):
+        rows = export_csv(table, path)
+        print(f"Exported {rows} rows to {path}.")
+    else:
+        print("Only CSV export is supported at the moment.")
+
+
 
 @app.command("sql")
 def sql_command(query: str):
