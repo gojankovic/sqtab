@@ -68,9 +68,15 @@ def analyze_table(table: str) -> dict:
     }
 
 
-def run_ai_analysis(table: str, info: dict) -> str:
+def run_ai_analysis(
+    table: str,
+    info: dict,
+    tasks: list[str] | None = None,
+    rules: list[str] | None = None,
+) -> str:
     """
     Generate an AI interpretation of table structure and sample data.
+    Users can optionally override TASKS and RULES for fully custom analysis.
     Requires OPENAI_API_KEY to be set.
     """
 
@@ -80,17 +86,39 @@ def run_ai_analysis(table: str, info: dict) -> str:
 
     client = OpenAI(api_key=api_key)
 
-    # Convert schema into clean Markdown text
-    schema_md = "\n".join(
-        f"- **{col['name']}** ({col['type']})"
-        for col in info["schema"]
-    )
+    # -----------------------
+    # DEFAULT TASKS & RULES
+    # -----------------------
+    default_tasks = [
+        "Describe the purpose of this table.",
+        "Interpret column meanings.",
+        "Identify potential data issues (nulls, outliers, inconsistencies).",
+        "Suggest 3–5 useful SQL queries for exploring this data.",
+    ]
 
-    # Format samples as Markdown table
-    samples_md = format_samples_md(info["samples"])
+    default_rules = [
+        "Respond using clean and properly structured Markdown.",
+        "SQL queries must be valid SQLite syntax.",
+        "Do not invent columns or data that do not exist.",
+        "Be analytical, factual, and concise.",
+    ]
 
+    tasks = tasks or default_tasks
+    rules = rules or default_rules
+
+    # Format TASKS and RULES as Markdown lists
+    tasks_md = "\n".join(f"- {t}" for t in tasks)
+    rules_md = "\n".join(f"- {r}" for r in rules)
+
+    # Helper converts first 5 rows to Markdown table
+    schema_md = render_schema_md(info["schema"])
+    samples_md = render_samples_md(info["samples"])
+
+    # -----------------------
+    # BUILD PROMPT
+    # -----------------------
     prompt = dedent(f"""
-    You are a senior data analyst. Analyze the following SQLite table.
+    You are a senior data analyst helping a user understand SQLite data.
 
     ## TABLE NAME
     {table}
@@ -101,20 +129,23 @@ def run_ai_analysis(table: str, info: dict) -> str:
     ## SAMPLE ROWS
     {samples_md}
 
-    ### TASKS
-    - Describe the likely purpose of this table.
-    - Explain what each column represents.
-    - Identify potential data quality issues (nulls, outliers, duplicates, inconsistencies).
-    - Suggest 3–5 practical SQL queries for exploring this data.
+    ## TASKS
+    {tasks_md}
+
+    ## RULES
+    {rules_md}
     """)
 
+    # -----------------------
+    # OPENAI CALL
+    # -----------------------
     response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=600,
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": prompt}]
     )
 
     return response.choices[0].message.content.strip()
+
 
 
 def format_samples_md(samples: list) -> str:
@@ -133,3 +164,29 @@ def format_samples_md(samples: list) -> str:
         data_rows.append(" | ".join(str(row[h]) for h in headers))
 
     return "\n".join([header_row, separator] + data_rows)
+
+def render_schema_md(schema: list[dict]) -> str:
+    """Render schema into a clean Markdown table."""
+    lines = ["| Name | Type | Not Null | Primary Key |", "|---|---|---|---|"]
+    for col in schema:
+        lines.append(
+            f"| {col['name']} | {col['type']} | {col['not_null']} | {col['primary_key']} |"
+        )
+    return "\n".join(lines)
+
+
+def render_samples_md(samples: list[dict]) -> str:
+    """Render sample rows into a Markdown table."""
+    if not samples:
+        return "_No sample rows available_"
+
+    columns = samples[0].keys()
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join("---" for _ in columns) + " |"
+
+    rows = []
+    for row in samples[:5]:  # limit 5 rows for clarity
+        rows.append("| " + " | ".join(str(row[col]) for col in columns) + " |")
+
+    return "\n".join([header, separator] + rows)
+
