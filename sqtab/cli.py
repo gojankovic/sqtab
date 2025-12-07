@@ -163,6 +163,19 @@ def tables_command(schema: bool = typer.Option(False, "--schema", help="Show tab
     conn.close()
 
 
+@app.command()
+def head(table: str, n: int = 10):
+    """Show first N rows of a table."""
+    from .head import head_table
+    head_table(table, n)
+
+
+@app.command()
+def describe(table: str):
+    """Describe table structure."""
+    from .describe import describe_table
+    describe_table(table)
+
 
 @app.command("analyze")
 def analyze_command(
