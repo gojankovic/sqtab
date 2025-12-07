@@ -3,7 +3,9 @@ __pycache__/
 *.pyo
 *.pyd
 
-database.db
+sqtab.db
+.sqtab.log
+sqtab.egg-info
 .env
 
 # Virtual environments
