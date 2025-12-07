@@ -22,16 +22,7 @@ authors = [
     { name = "Goran Janković" }
 ]
 
-keywords = [
-    "sqlite",
-    "cli",
-    "csv",
-    "json",
-    "data",
-    "database",
-    "analysis",
-    "command-line"
-]
+keywords = ["sqlite", "cli", "csv", "json", "data", "database", "analysis", "command-line"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -45,8 +36,8 @@ classifiers = [
 [project.scripts]
 sqtab = "sqtab.cli:app"
 
-[tool.setuptools.packages.find]
-include = ["sqtab*"]
+[tool.setuptools]
+packages = ["sqtab"]
 
 [tool.setuptools.package-data]
 sqtab = ["prompts/*.md"]
