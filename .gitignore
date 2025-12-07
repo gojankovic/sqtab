@@ -8,6 +8,10 @@ sqtab.db
 sqtab.egg-info
 .env
 
+# Local export output
+exports/*
+!exports/.gitkeep
+
 # Virtual environments
 venv/
 .env/
