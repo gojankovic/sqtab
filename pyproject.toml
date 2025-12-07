@@ -36,9 +36,13 @@ classifiers = [
 [project.scripts]
 sqtab = "sqtab.cli:app"
 
+[tool.setuptools]
+zip-safe = false
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["sqtab*"]
+exclude = ["tests*", "test*", "examples*", "docs*"]
 
 [tool.setuptools.package-data]
 sqtab = ["prompts/*.md"]
