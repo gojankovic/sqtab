@@ -6,17 +6,21 @@ Commands are currently skeletons and will be implemented in future commits.
 """
 
 import os
-import typer
 import sqlite3
+import typer
+
+from rich.console import Console
+from rich.table import Table
 from pathlib import Path
 from sqtab.importer import import_file
 from sqtab.exporter import export_csv, export_json
 from sqtab.analyzer import analyze_table
 from sqtab.logger import log
-from sqtab.db import DB_PATH
+from sqtab.db import DB_PATH, get_conn
 
 app = typer.Typer(help="sqtab - Minimal CLI for tabular data (CSV/JSON + SQLite).")
 
+console = Console()
 
 EXPORT_DIR = Path("exports")
 EXPORT_DIR.mkdir(exist_ok=True)
@@ -71,15 +75,46 @@ def export_cmd(table: str, path: str = None):
 def sql_command(query: str):
     """
     Execute a raw SQL query on the SQLite database.
-    (Skeleton implementation.)
-    """
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    rows = cur.execute(query).fetchall()
-    conn.close()
 
-    typer.echo(rows)
-    log(f"SQL executed: {query}")
+    - For SELECT-like statements, prints a formatted table of results.
+    - For modification statements (INSERT/UPDATE/DELETE/etc.), prints affected row count.
+    """
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(query)
+        stripped = query.strip().lower()
+
+        if stripped.startswith("select"):
+            rows = cur.fetchall()
+
+            if not rows:
+                typer.echo("No rows returned.")
+            else:
+                headers = [col[0] for col in cur.description]
+
+                table = Table(show_header=True, header_style="bold")
+                for h in headers:
+                    table.add_column(h)
+
+                for row in rows:
+                    table.add_row(*[str(value) for value in row])
+
+                console.print(table)
+        else:
+            conn.commit()
+            affected = cur.rowcount
+            typer.echo(f"Query executed. Rows affected: {affected}")
+
+        log(f"SQL executed successfully: {query}")
+
+    except sqlite3.Error as exc:
+        log(f"SQL error for query={query!r}: {exc}")
+        typer.echo(f"Error executing SQL: {exc}")
+        raise typer.Exit(code=1)
+    finally:
+        conn.close()
 
 
 @app.command("analyze")
