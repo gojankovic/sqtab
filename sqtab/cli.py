@@ -8,6 +8,7 @@ Commands are currently skeletons and will be implemented in future commits.
 import os
 import typer
 import sqlite3
+from pathlib import Path
 from sqtab.importer import import_file
 from sqtab.exporter import export_csv, export_json
 from sqtab.analyzer import analyze_table
@@ -16,6 +17,9 @@ from sqtab.db import DB_PATH
 
 app = typer.Typer(help="sqtab - Minimal CLI for tabular data (CSV/JSON + SQLite).")
 
+
+EXPORT_DIR = Path("exports")
+EXPORT_DIR.mkdir(exist_ok=True)
 
 @app.command()
 def version():
@@ -38,11 +42,17 @@ def import_command(path: str, table: str):
 
 
 @app.command("export")
-def export_cmd(table: str, path: str):
+def export_cmd(table: str, path: str = None):
     """
     Export a SQLite table to CSV or JSON. (CSV implemented)
     """
-    if path.lower().endswith(".csv"):
+    # If no output path is provided, generate one automatically.
+    if path is None:
+        path = EXPORT_DIR / f"{table}.csv"
+    else:
+        path = Path(path)
+
+    if str(path).lower().endswith(".csv"):
         rows = export_csv(table, path)
         print(f"Exported {rows} rows to {path}.")
     else:
