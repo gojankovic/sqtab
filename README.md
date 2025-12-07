@@ -1,102 +1,77 @@
 # sqtab
 
-sqtab is a minimalist command-line tool for working with tabular data using SQLite.  
-It provides a simple workflow for importing CSV/JSON files, inspecting table structures, executing SQL queries, and exporting results.  
-The goal is to offer a small, dependency-light utility that is easy to integrate into scripts and data pipelines.
+Minimal command-line toolkit for working with tabular data (CSV / JSON) using SQLite.
+
+sqtab allows you to:
+
+- import CSV or JSON into a SQLite table  
+- run SQL queries  
+- inspect table schemas  
+- export tables to CSV  
+- analyze tables (AI-assisted analysis coming soon)
 
 ---
 
 ## Installation
 
+Install using pip:
+
 ```bash
-git clone https://github.com/gojankovic/sqtab
-cd sqtab
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -e .
+pip install sqtab
 ```
 
-This installs the `sqtab` command inside your virtual environment.
+Requires Python 3.10+.
 
 ---
 
 ## Basic Usage
 
-### Import CSV or JSON into a table
+### Import CSV or JSON
 
 ```bash
 sqtab import data.csv users
-sqtab import data.json users
 ```
 
-### Analyze table structure
+### View table schema
 
 ```bash
-sqtab analyze users
-```
-
-### List tables
-
-```bash
-sqtab tables
 sqtab tables --schema
 ```
 
-### Execute SQL
+### Run SQL queries
 
 ```bash
 sqtab sql "SELECT * FROM users;"
 ```
 
-### Export tables
+### Export a table to CSV
 
 ```bash
-sqtab export users output.csv
-sqtab export users output.json
+sqtab export users users_export.csv
 ```
 
-### Database information
-
-```bash
-sqtab info
-```
-
-### Reset database
-
-Soft reset (drops all tables):
+### Reset the database
 
 ```bash
 sqtab reset
 ```
 
-Hard reset (delete the database file):
-
-```bash
-sqtab reset --hard
-```
-
----
-
-## Command Reference
-
-The full list of commands is always available through:
+For a full list of commands:
 
 ```bash
 sqtab --help
-sqtab <command> --help
 ```
-
-Examples:
-
-```bash
-sqtab import --help
-sqtab sql --help
-sqtab tables --help
-```
-
-Each command provides clear parameter descriptions and available options.
 
 ---
+
+## Project Status
+
+sqtab is in early development (0.x releases).  
+Feedback and contributions are welcome.
+
+Source code:  
+https://github.com/gojankovic/sqtab
+
 
 ## License
 
