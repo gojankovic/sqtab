@@ -53,9 +53,20 @@ def _import_csv(path: str, table: str) -> int:
     cur = conn.cursor()
 
     # Read CSV
-    with open(path, newline="", encoding="utf-8") as f:
+    with open_with_bom(path) as f:
         reader = csv.DictReader(f)
         rows = list(reader)
+
+    # Strip BOM if present in header (e.g. "﻿id" → "id")
+    if rows and list(rows[0].keys()):
+        cleaned_rows = []
+        for row in rows:
+            new_row = {}
+            for k, v in row.items():
+                clean_key = k.lstrip("\ufeff")  # remove BOM char if present
+                new_row[clean_key] = v
+            cleaned_rows.append(new_row)
+        rows = cleaned_rows
 
     if not rows:
         return 0
@@ -151,6 +162,28 @@ def _import_json(path: str, table: str) -> int:
     conn.commit()
     conn.close()
     return len(rows)
+
+
+def open_with_bom(path: str):
+    """Open a file with automatic BOM detection and removal."""
+    with open(path, "rb") as f:
+        raw = f.read(4)
+
+    # UTF-8 BOM
+    if raw.startswith(b"\xef\xbb\xbf"):
+        return open(path, encoding="utf-8-sig")
+
+    # UTF-16 LE BOM
+    if raw.startswith(b"\xff\xfe"):
+        return open(path, encoding="utf-16-le")
+
+    # UTF-16 BE BOM
+    if raw.startswith(b"\xfe\xff"):
+        return open(path, encoding="utf-16-be")
+
+    # Fallback: UTF-8
+    return open(path, encoding="utf-8")
+
 
 def infer_type(value: str):
     value = value.strip()
