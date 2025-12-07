@@ -7,7 +7,7 @@ Commands are currently skeletons and will be implemented in future commits.
 
 import os
 import sqlite3
-from importlib.metadata import version, PackageNotFoundError
+from importlib.metadata import version as get_version, PackageNotFoundError
 from typing import List, Optional
 
 import typer
@@ -37,8 +37,9 @@ def version():
     """
     Show the current sqtab version.
     """
+    print(get_version("sqtab"))
     try:
-        v = version("sqtab")
+        v = get_version("sqtab")
         typer.echo(f"sqtab version {v}")
     except PackageNotFoundError:
         typer.echo("sqtab version unknown (package not found)")
