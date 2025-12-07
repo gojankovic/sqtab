@@ -114,7 +114,7 @@ def run_ai_analysis(table: str, info: dict, tasks: List[str], rules: List[str]) 
     }
 
     # Fill template
-    user_prompt = template.format(**context)
+    user_prompt = template.substitute(**context)
 
     client = OpenAI(api_key=api_key)
 

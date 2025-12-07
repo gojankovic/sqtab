@@ -1,16 +1,16 @@
 You are a senior data analyst.
 
 ## TABLE NAME
-{{ table }}
+$table
 
 ## SCHEMA
-{{ schema }}
+$schema
 
 ## SAMPLE ROWS
-{{ samples }}
+$samples
 
 ## RULES
-{{ rules }}
+$rules
 
 ## TASKS
-{{ tasks }}
+$tasks

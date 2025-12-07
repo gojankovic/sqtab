@@ -1,11 +1,10 @@
+from string import Template
 from typing import List
 from pathlib import Path
 
 
-def load_prompt_template(path: Path) -> str:
-    if not path.exists():
-        raise FileNotFoundError(f"Prompt template not found: {path}")
-    return path.read_text(encoding="utf-8")
+def load_prompt_template(path: Path) -> Template:
+    return Template(path.read_text(encoding="utf-8"))
 
 
 def schema_to_markdown(schema: List[dict]) -> str:
