@@ -43,16 +43,16 @@ def _import_csv(path: str, table: str) -> int:
     """
     Import data from a CSV file into a SQLite table.
 
-    The table will be created automatically if it does not exist.
-
-    Returns
-    -------
-    int
-        Number of imported rows.
+    Performs:
+    - column name normalization
+    - per-column type inference (INTEGER, REAL, TEXT)
+    - row value type inference via infer_type()
     """
+
     conn = get_conn()
     cur = conn.cursor()
 
+    # Read CSV
     with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
@@ -60,16 +60,38 @@ def _import_csv(path: str, table: str) -> int:
     if not rows:
         return 0
 
-    columns = [normalize_column(c) for c in rows[0].keys()]
-    col_list = ", ".join([f'"{c}"' for c in columns])
+    # Extract original column names from the CSV
+    raw_columns = list(rows[0].keys())
+
+    # Normalize column names
+    columns = [normalize_column(c) for c in raw_columns]
+
+    # Collect values column-by-column for type inference
+    column_values = {col: [] for col in columns}
+
+    for row in rows:
+        for raw_col, norm_col in zip(raw_columns, columns):
+            column_values[norm_col].append(row[raw_col])
+
+    # Infer type for each column (INTEGER, REAL, TEXT)
+    column_types = {
+        col: infer_column_type(vals)
+        for col, vals in column_values.items()
+    }
+
+    # Build CREATE TABLE statement
+    col_defs = ", ".join([f'"{col}" {column_types[col]}' for col in columns])
     placeholders = ", ".join(["?"] * len(columns))
 
-    # Create table if needed.
-    cur.execute(f'CREATE TABLE IF NOT EXISTS "{table}" ({col_list})')
+    # Create table if not exists
+    cur.execute(f'CREATE TABLE IF NOT EXISTS "{table}" ({col_defs})')
 
-    # Insert rows.
+    # Insert rows using infer_type on each cell
     for row in rows:
-        values = [infer_type(v) for v in row.values()]
+        values = []
+        for raw_col in raw_columns:
+            v = row[raw_col]
+            values.append(infer_type(v))
         cur.execute(
             f'INSERT INTO "{table}" VALUES ({placeholders})',
             values
@@ -78,6 +100,7 @@ def _import_csv(path: str, table: str) -> int:
     conn.commit()
     conn.close()
     return len(rows)
+
 
 
 def _import_json(path: str, table: str) -> int:
@@ -152,5 +175,42 @@ def infer_type(value: str):
 
     return value  # leave as string
 
+def infer_column_type(values):
+    """
+    Infer SQLite column type (INTEGER, REAL, TEXT)
+    based on all values in the column.
+    """
+
+    # Remove empty strings
+    non_empty = [v for v in values if v != ""]
+
+    if not non_empty:
+        return "TEXT"  # all empty → TEXT
+
+    # Try INTEGER
+    try:
+        for v in non_empty:
+            int(v)
+        return "INTEGER"
+    except ValueError:
+        pass
+
+    # Try REAL
+    try:
+        for v in non_empty:
+            float(v)
+        return "REAL"
+    except ValueError:
+        pass
+
+    # Try BOOLEAN
+    bool_set = {"true", "false", "True", "False"}
+    if all(v in bool_set for v in non_empty):
+        return "TEXT"
+
+    # Otherwise TEXT
+    return "TEXT"
+
 def normalize_column(col: str) -> str:
     return col.strip().replace(" ", "_").lower()
+

@@ -187,13 +187,64 @@ def analyze_cmd(table: str):
 
 
 @app.command("reset")
-def reset_command():
+def reset_command(hard: bool = typer.Option(False, "--hard", help="Delete sqtab.db file instead of dropping tables.")):
     """
-    Reset (delete) the SQLite database file.
+    Reset the database.
+
+    Default: remove all tables (soft reset).
+    --hard : delete the sqtab.db file entirely (Windows-safe).
     """
-    if os.path.exists(DB_PATH):
-        os.remove(DB_PATH)
-        log("Database reset.")
-        typer.echo("database.db removed.")
-    else:
-        typer.echo("database.db does not exist.")
+
+    # HARD RESET ============================================================================
+    if hard:
+        if not os.path.exists(DB_PATH):
+            typer.echo("Database file does not exist.")
+            return
+
+        temp_name = DB_PATH.with_suffix(".db.old")
+
+        # 1) Rename the file first (Windows allows renaming locked files)
+        try:
+            os.replace(DB_PATH, temp_name)
+        except Exception as e:
+            typer.echo(f"Failed to rename database file: {e}")
+            return
+
+        # 2) Delete the renamed file in a new process
+        import subprocess, sys
+
+        cmd = f"import os; os.remove(r'{temp_name}')"
+        result = subprocess.run([sys.executable, "-c", cmd], capture_output=True, text=True)
+
+        if result.returncode != 0:
+            typer.echo("Database renamed but deletion failed:")
+            typer.echo(result.stderr)
+            return
+
+        log("Database hard reset (file deleted).")
+        typer.echo("sqtab.db hard reset complete.")
+        return
+
+    # SOFT RESET ============================================================================
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # Fetch all table names
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cur.fetchall()
+
+    if not tables:
+        typer.echo("No tables to drop.")
+        return
+
+    # Drop tables one by one
+    for (table_name,) in tables:
+        cur.execute(f'DROP TABLE IF EXISTS "{table_name}"')
+
+    conn.commit()
+    conn.close()
+
+    log("Database soft reset (tables dropped).")
+    typer.echo("All tables dropped (soft reset).")
+
+
