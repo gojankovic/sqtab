@@ -36,21 +36,6 @@ def import_command(path: str, table: str):
     typer.echo(f"Import command executed (rows imported: {result}).")
 
 
-@app.command("export")
-def export_command(table: str, csv: str = None, json: str = None):
-    """
-    Export a SQLite table to CSV or JSON.
-    (Skeleton implementation.)
-    """
-    if csv:
-        result = export_csv(table, csv)
-        typer.echo(f"Exported to CSV (rows: {result}).")
-
-    if json:
-        result = export_json(table, json)
-        typer.echo(f"Exported to JSON (rows: {result}).")
-
-    log(f"Export called for table={table}, csv={csv}, json={json}")
 
 @app.command("export")
 def export_cmd(table: str, path: str):
