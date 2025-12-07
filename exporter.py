@@ -6,7 +6,7 @@ This is the initial skeleton; full implementation will be added in future commit
 """
 
 from typing import Optional
-from db import get_conn
+from sqtab.db import get_conn
 
 
 def export_csv(table: str, path: str) -> Optional[int]:

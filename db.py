@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 
 # Default SQLite database file used by sqtab.
-DB_PATH = Path("database.db")
+DB_PATH = Path("sqtab.db")
 
 
 def get_conn() -> sqlite3.Connection:
