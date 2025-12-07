@@ -8,33 +8,52 @@ about the dataset.
 This is the initial skeleton; full implementation will follow.
 """
 
-from typing import Optional
+from sqtab.db import get_conn
 
 
-def analyze_table(table: str) -> str:
+def analyze_table(table: str) -> dict:
     """
-    Analyze the given SQLite table using AI.
+    Analyze a SQLite table and return its structure and summary statistics.
 
-    Parameters
-    ----------
-    table : str
-        Name of the SQLite table to analyze.
-
-    Returns
-    -------
-    str
-        A human-readable analysis summary.
-
-    Notes
-    -----
-    - The implementation will be added in a future commit.
-    - It will use OpenAI models to:
-        * summarize the dataset
-        * infer data types
-        * detect anomalies
-        * suggest indexes
-        * propose useful SQL queries
-    - For now, this function returns a placeholder message.
+    This does NOT call any AI model yet — only prepares the data structure.
     """
-    # TODO: Implement OpenAI-based table analysis.
-    return f"Analysis for table '{table}' is not implemented yet."
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    # Check table existence
+    cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+        (table,)
+    )
+    exists = cur.fetchone()
+    if not exists:
+        raise ValueError(f"Table '{table}' does not exist.")
+
+    # 1) Read table structure
+    cur.execute(f'PRAGMA table_info("{table}")')
+    columns_info = cur.fetchall()  # cid, name, type, notnull, dflt_value, pk
+
+    columns = []
+    for cid, name, col_type, notnull, dflt, pk in columns_info:
+        columns.append({
+            "name": name,
+            "type": col_type or "UNKNOWN",
+            "not_null": bool(notnull),
+            "primary_key": bool(pk)
+        })
+
+    # 2) Count rows
+    cur.execute(f'SELECT COUNT(*) FROM "{table}"')
+    row_count = cur.fetchone()[0]
+
+    # 3) Collect basic stats preview
+    summary = {
+        "table": table,
+        "rows": row_count,
+        "column_count": len(columns),
+        "columns": columns,
+    }
+
+    conn.close()
+    return summary

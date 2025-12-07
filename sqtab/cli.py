@@ -145,14 +145,45 @@ def tables_command():
 
 
 @app.command("analyze")
-def analyze_command(table: str):
+def analyze_cmd(table: str):
     """
-    Analyze a SQLite table using AI.
-    (Skeleton implementation.)
+    Analyze a SQLite table and output structural information.
+    (AI integration will be added later.)
     """
-    output = analyze_table(table)
-    typer.echo(output)
-    log(f"Analyze called for table={table}")
+    try:
+        summary = analyze_table(table)
+    except ValueError as exc:
+        typer.echo(f"Error: {exc}")
+        raise typer.Exit(code=1)
+
+    console.print(f"[bold]Table:[/bold] {summary['table']}")
+    console.print(f"[bold]Rows:[/bold] {summary['rows']}")
+    console.print(f"[bold]Columns:[/bold] {summary['column_count']}")
+
+    # Pretty print column structure
+    from rich.table import Table as RichTable
+    col_table = RichTable(show_header=True, header_style="bold")
+    col_table.add_column("Name")
+    col_table.add_column("Type")
+    col_table.add_column("Not Null")
+    col_table.add_column("Primary Key")
+
+    for col in summary["columns"]:
+        col_table.add_row(
+            col["name"],
+            col["type"],
+            str(col["not_null"]),
+            str(col["primary_key"]),
+        )
+
+    console.print(col_table)
+
+    log(f"Analyzed table {table}.")
+
+    # AI placeholder
+    console.print(
+        "[green]\nAI analysis not implemented yet — summary prepared.[/green]"
+    )
 
 
 @app.command("reset")
