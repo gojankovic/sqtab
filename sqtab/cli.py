@@ -52,12 +52,19 @@ def export_cmd(table: str, path: str = None):
     else:
         path = Path(path)
 
-    if str(path).lower().endswith(".csv"):
+    lower = str(path).lower()
+
+    if lower.endswith(".csv"):
         rows = export_csv(table, path)
         print(f"Exported {rows} rows to {path}.")
-    else:
-        print("Only CSV export is supported at the moment.")
+        return
 
+    if lower.endswith(".json"):
+        rows = export_json(table, path)
+        print(f"Exported {rows} rows to {path}.")
+        return
+
+    print("Unsupported export format. Use .csv or .json.")
 
 
 @app.command("sql")

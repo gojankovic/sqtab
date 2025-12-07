@@ -5,9 +5,10 @@ Provides utilities for exporting SQLite tables to CSV or JSON files.
 """
 
 import csv
-from typing import Optional
 from pathlib import Path
 from sqtab.db import get_conn
+import json
+
 
 def export_csv(table: str, path: str | Path) -> int:
     """
@@ -58,26 +59,38 @@ def _write_csv(path: Path, headers: list[str], rows: list[tuple]):
         writer.writerows(rows)
 
 
-def export_json(table: str, path: str) -> Optional[int]:
+def export_json(table: str, path: str | Path) -> int:
     """
-    Export a SQLite table to a JSON file.
+    Export a SQLite table into a JSON file.
 
     Parameters
     ----------
     table : str
         Name of the SQLite table to export.
-    path : str
-        Destination path for the JSON output file.
+    path : str | Path
+        Output file path.
 
     Returns
     -------
-    Optional[int]
-        The number of exported rows, or None if implementation is pending.
-
-    Notes
-    -----
-    - JSON export logic will be implemented in a future commit.
-    - Rows should be converted to dictionaries keyed by column names.
+    int
+        Number of exported rows.
     """
-    # TODO: Implement JSON export logic.
-    return None
+    path = Path(path)
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    result = cur.execute(f'SELECT * FROM "{table}"')
+    rows = result.fetchall()
+
+    if not rows:
+        data = []
+    else:
+        columns = [col[0] for col in result.description]
+        data = [dict(zip(columns, row)) for row in rows]
+
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+    conn.close()
+    return len(rows)
