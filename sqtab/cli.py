@@ -11,13 +11,17 @@ import typer
 
 from datetime import datetime
 from rich.console import Console
+from rich.markdown import Markdown
+from rich.panel import Panel
 from rich.table import Table
 from pathlib import Path
 from sqtab.importer import import_file
 from sqtab.exporter import export_csv, export_json
-from sqtab.analyzer import analyze_table
+from sqtab.analyzer import analyze_table, run_ai_analysis
 from sqtab.logger import log
 from sqtab.db import DB_PATH, get_conn
+from dotenv import load_dotenv
+load_dotenv()
 
 app = typer.Typer(help="sqtab - Minimal CLI for tabular data (CSV/JSON + SQLite).")
 
@@ -156,45 +160,44 @@ def tables_command(schema: bool = typer.Option(False, "--schema", help="Show tab
 
 
 @app.command("analyze")
-def analyze_cmd(table: str):
+def analyze_command(
+    table: str,
+    ai: bool = typer.Option(False, "--ai", help="Use AI to analyze the table"),
+):
     """
-    Analyze a SQLite table and output structural information.
-    (AI integration will be added later.)
+    Analyze a table: show schema, row count, and optionally run AI analysis.
     """
-    try:
-        summary = analyze_table(table)
-    except ValueError as exc:
-        typer.echo(f"Error: {exc}")
-        raise typer.Exit(code=1)
+    info = analyze_table(table)
 
-    console.print(f"[bold]Table:[/bold] {summary['table']}")
-    console.print(f"[bold]Rows:[/bold] {summary['rows']}")
-    console.print(f"[bold]Columns:[/bold] {summary['column_count']}")
+    # Print normal analysis
+    console = Console()
+    console.print(f"Table: {table}")
+    console.print(f"Rows: {info['row_count']}")
+    console.print(f"Columns: {len(info['schema'])}")
 
-    # Pretty print column structure
-    from rich.table import Table as RichTable
-    col_table = RichTable(show_header=True, header_style="bold")
-    col_table.add_column("Name")
-    col_table.add_column("Type")
-    col_table.add_column("Not Null")
-    col_table.add_column("Primary Key")
-
-    for col in summary["columns"]:
-        col_table.add_row(
+    schema_table = Table("Name", "Type", "Not Null", "Primary Key")
+    for col in info["schema"]:
+        schema_table.add_row(
             col["name"],
             col["type"],
             str(col["not_null"]),
-            str(col["primary_key"]),
+            str(col["primary_key"])
+        )
+    console.print(schema_table)
+
+    # AI mode
+    if ai:
+        console.print("\n[bold cyan]AI Analysis Report[/bold cyan]\n")
+        ai_text = run_ai_analysis(table, info)
+
+        console.print(
+            Panel(
+                Markdown(ai_text),
+                title="[green]AI Insights[/green]",
+                border_style="bright_blue"
+            )
         )
 
-    console.print(col_table)
-
-    log(f"Analyzed table {table}.")
-
-    # AI placeholder
-    console.print(
-        "[green]\nAI analysis not implemented yet — summary prepared.[/green]"
-    )
 
 @app.command("info")
 def info_command():
