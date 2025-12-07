@@ -1,6 +1,16 @@
+import os
+
 from string import Template
 from typing import List
 from pathlib import Path
+
+
+def get_ai_model(default: str = "gpt-4o-mini") -> str:
+    """
+    Returns AI model name. If SQTAB_AI_MODEL is not set,
+    falls back to a sensible default.
+    """
+    return os.getenv("SQTAB_AI_MODEL", default)
 
 
 def load_prompt_template(path: Path) -> Template:

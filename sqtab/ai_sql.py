@@ -6,6 +6,7 @@ from openai import OpenAI
 from pygments.lexers import sql
 
 from sqtab.db import get_conn
+from sqtab.prompt_utils import get_ai_model
 
 
 def _get_schema() -> dict:
@@ -59,8 +60,11 @@ def generate_sql_from_nl(question: str) -> str:
     Return only SQL:
     """)
 
+    model = get_ai_model()
+    print(f"[sqtab] Using AI model: {model}")
+
     res = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[{"role": "user", "content": prompt}]
     )
 
@@ -92,7 +96,5 @@ def clean_sql(sql: str) -> str:
     # Remove empty lines
     sql = "\n".join(line for line in sql.splitlines() if line.strip())
 
-    print(sql)
-    print(sql.strip())
     return sql.strip()
 

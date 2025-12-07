@@ -28,6 +28,7 @@ from .prompt_utils import (
     schema_to_markdown,
     samples_to_markdown,
     validate_list,
+    get_ai_model
 )
 
 def analyze_table(table: str) -> dict:
@@ -118,8 +119,11 @@ def run_ai_analysis(table: str, info: dict, tasks: List[str], rules: List[str]) 
 
     client = OpenAI(api_key=api_key)
 
+    model = get_ai_model()
+    print(f"[sqtab] Using AI model: {model}")
+
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt},
