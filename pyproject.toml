@@ -1,0 +1,17 @@
+[project]
+name = "sqtab"
+version = "0.0.1"
+description = "Minimal CLI for tabular data: import CSV/JSON, run SQL queries, export tables, and perform AI-assisted analysis."
+readme = "README.md"
+requires-python = ">=3.10"
+
+dependencies = [
+    "typer>=0.12",
+    "rich>=13.0"
+]
+
+[project.scripts]
+sqtab = "sqtab.cli:app"
+
+[tool.setuptools]
+packages = ["sqtab"]
