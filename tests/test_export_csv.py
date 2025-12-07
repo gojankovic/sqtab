@@ -28,7 +28,7 @@ class TestCSVExport(unittest.TestCase):
 
         # 2. Export the table to a new CSV file
         rows_exported = export_csv(self.TABLE, self.OUTFILE)
-        self.assertEqual(rows_exported, 2)
+        self.assertEqual(rows_exported, 3)
 
         # 3. Read generated CSV
         with open(self.OUTFILE, encoding="utf-8") as f:
@@ -38,7 +38,8 @@ class TestCSVExport(unittest.TestCase):
         expected = [
             ["id", "name", "age"],
             ["1", "Ana", "30"],
-            ["2", "Marko", "25"]
+            ["2", "Marko", "25"],
+            ["3", "Ivana", "28"],
         ]
 
         self.assertEqual(reader, expected)
