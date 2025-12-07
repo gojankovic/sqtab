@@ -9,6 +9,7 @@ import os
 import sqlite3
 import typer
 
+from datetime import datetime
 from rich.console import Console
 from rich.table import Table
 from pathlib import Path
@@ -194,6 +195,59 @@ def analyze_cmd(table: str):
     console.print(
         "[green]\nAI analysis not implemented yet — summary prepared.[/green]"
     )
+
+@app.command("info")
+def info_command():
+    """
+    Show information about the SQLite database: size, tables, and SQLite version.
+    """
+
+    # If database doesn't exist
+    if not os.path.exists(DB_PATH):
+        typer.echo("Database file does not exist.")
+        return
+
+    # Basic file stats
+    size_bytes = os.path.getsize(DB_PATH)
+    size_kb = size_bytes / 1024
+    mtime = datetime.fromtimestamp(os.path.getmtime(DB_PATH))
+
+    # SQLite version
+    conn = get_conn()
+    cur = conn.cursor()
+    cur.execute("select sqlite_version();")
+    version = cur.fetchone()[0]
+
+    # Tables
+    cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
+    tables = [t[0] for t in cur.fetchall()]
+
+    # Print database info
+    console.print(f"[bold]Database:[/bold] {DB_PATH}")
+    console.print(f"[bold]Size:[/bold] {size_kb:.2f} KB")
+    console.print(f"[bold]SQLite version:[/bold] {version}")
+    console.print(f"[bold]Last modified:[/bold] {mtime}")
+
+    if not tables:
+        console.print("\n[bold]Tables:[/bold] None")
+        conn.close()
+        return
+
+    # Table with row counts
+    table_view = Table(title="Tables", show_header=True, header_style="bold")
+    table_view.add_column("Table")
+    table_view.add_column("Rows", justify="right")
+
+    for t in tables:
+        cur.execute(f'SELECT COUNT(*) FROM "{t}"')
+        row_count = cur.fetchone()[0]
+        table_view.add_row(t, str(row_count))
+
+    console.print()
+    console.print(table_view)
+
+    conn.close()
+
 
 
 @app.command("reset")
