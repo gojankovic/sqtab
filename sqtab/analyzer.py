@@ -71,7 +71,7 @@ def analyze_table(table: str) -> dict:
 def run_ai_analysis(table: str, info: dict) -> str:
     """
     Generate an AI interpretation of table structure and sample data.
-    Requires OPENAI_API_KEY to be set (via .env or OS env).
+    Requires OPENAI_API_KEY to be set.
     """
 
     api_key = os.getenv("OPENAI_API_KEY")
@@ -80,29 +80,56 @@ def run_ai_analysis(table: str, info: dict) -> str:
 
     client = OpenAI(api_key=api_key)
 
+    # Convert schema into clean Markdown text
+    schema_md = "\n".join(
+        f"- **{col['name']}** ({col['type']})"
+        for col in info["schema"]
+    )
+
+    # Format samples as Markdown table
+    samples_md = format_samples_md(info["samples"])
+
     prompt = dedent(f"""
     You are a senior data analyst. Analyze the following SQLite table.
 
-    TABLE NAME:
+    ## TABLE NAME
     {table}
 
-    SCHEMA:
-    {json.dumps(info["schema"], indent=2)}
+    ## SCHEMA
+    {schema_md}
 
-    SAMPLE ROWS:
-    {json.dumps(info["samples"], indent=2)}
+    ## SAMPLE ROWS
+    {samples_md}
 
-    TASKS:
-    - Describe the purpose of this table.
-    - Interpret column meanings.
-    - Identify potential data issues (nulls, outliers, inconsistencies).
-    - Suggest 3–5 useful SQL queries for exploring this data.
+    ### TASKS
+    - Describe the likely purpose of this table.
+    - Explain what each column represents.
+    - Identify potential data quality issues (nulls, outliers, duplicates, inconsistencies).
+    - Suggest 3–5 practical SQL queries for exploring this data.
     """)
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}]
+        model="gpt-4.1-mini",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=600,
     )
 
     return response.choices[0].message.content.strip()
 
+
+def format_samples_md(samples: list) -> str:
+    """
+    Convert sample rows into a compact Markdown table.
+    """
+    if not samples:
+        return "_No sample rows available._"
+
+    headers = samples[0].keys()
+    header_row = " | ".join(headers)
+    separator = " | ".join(["---"] * len(headers))
+
+    data_rows = []
+    for row in samples:
+        data_rows.append(" | ".join(str(row[h]) for h in headers))
+
+    return "\n".join([header_row, separator] + data_rows)
