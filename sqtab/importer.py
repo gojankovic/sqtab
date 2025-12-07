@@ -60,8 +60,8 @@ def _import_csv(path: str, table: str) -> int:
     if not rows:
         return 0
 
-    columns = rows[0].keys()
-    col_list = ", ".join([f'"{col}"' for col in columns])
+    columns = [normalize_column(c) for c in rows[0].keys()]
+    col_list = ", ".join([f'"{c}"' for c in columns])
     placeholders = ", ".join(["?"] * len(columns))
 
     # Create table if needed.
@@ -69,7 +69,7 @@ def _import_csv(path: str, table: str) -> int:
 
     # Insert rows.
     for row in rows:
-        values = list(row.values())
+        values = [infer_type(v) for v in row.values()]
         cur.execute(
             f'INSERT INTO "{table}" VALUES ({placeholders})',
             values
@@ -129,3 +129,28 @@ def _import_json(path: str, table: str) -> int:
     conn.close()
     return len(rows)
 
+def infer_type(value: str):
+    value = value.strip()
+
+    if value == "":
+        return None
+
+    # int
+    if value.isdigit() or (value.startswith("-") and value[1:].isdigit()):
+        return int(value)
+
+    # float
+    try:
+        return float(value)
+    except ValueError:
+        pass
+
+    # boolean
+    lower = value.lower()
+    if lower in ("true", "false"):
+        return lower == "true"
+
+    return value  # leave as string
+
+def normalize_column(col: str) -> str:
+    return col.strip().replace(" ", "_").lower()
