@@ -118,30 +118,40 @@ def sql_command(query: str):
 
 
 @app.command("tables")
-def tables_command():
+def tables_command(schema: bool = typer.Option(False, "--schema", help="Show table schemas.")):
     """
     List all tables in the SQLite database.
+    Use --schema to include column definitions.
     """
+
     conn = get_conn()
     cur = conn.cursor()
 
+    # Get all table names
     cur.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;")
-    rows = cur.fetchall()
-    conn.close()
+    tables = [row[0] for row in cur.fetchall()]
 
-    if not rows:
+    if not tables:
         typer.echo("No tables found.")
         return
 
-    table = Table(show_header=True, header_style="bold")
-    table.add_column("Table Name")
+    if not schema:
+        # Just list table names
+        for t in tables:
+            typer.echo(t)
+        return
 
-    for (name,) in rows:
-        table.add_row(name)
+    # Show schema (column definitions)
+    for t in tables:
+        cur.execute(f'PRAGMA table_info("{t}")')
+        cols = cur.fetchall()  # cid, name, type, notnull, dflt, pk
 
-    console.print(table)
+        col_defs = ", ".join([f'{c[1]} {c[2] or "TEXT"}' for c in cols])
 
-    log("Listed all tables.")
+        typer.echo(f"{t} ({col_defs})")
+
+    conn.close()
+
 
 
 @app.command("analyze")
