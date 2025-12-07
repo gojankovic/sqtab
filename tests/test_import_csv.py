@@ -27,9 +27,9 @@ class TestCSVImport(unittest.TestCase):
         conn.close()
 
         expected = [
-            ("1", "Ana", "30"),
-            ("2", "Marko", "25"),
-            ('3', 'Ivana', '28')
+            (1, "Ana", 30),
+            (2, "Marko", 25),
+            (3, 'Ivana', 28)
         ]
 
         self.assertEqual(data, expected)
