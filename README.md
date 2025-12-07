@@ -1,77 +1,118 @@
 # sqtab
 
-Minimal command-line toolkit for working with tabular data (CSV / JSON) using SQLite.
+**sqtab** is a minimal command-line toolkit for working with tabular data
+(CSV / JSON) using SQLite as a lightweight local database layer.
 
-sqtab allows you to:
+It is designed for developers, data analysts, and engineers who need a fast,
+clean way to explore or transform structured data without setting up a full
+database environment.
 
-- import CSV or JSON into a SQLite table  
-- run SQL queries  
-- inspect table schemas  
-- export tables to CSV  
-- analyze tables (AI-assisted analysis coming soon)
+sqtab provides:
+
+- importing CSV or JSON into SQLite tables  
+- schema inspection  
+- running ad-hoc SQL queries  
+- exporting tables back to CSV or JSON  
+- AI-assisted table analysis (customizable with tasks and rules)
 
 ---
 
 ## Installation
 
-Install using pip:
-
-```bash
+```
 pip install sqtab
 ```
 
-Requires Python 3.10+.
+Requires **Python 3.10+**.
 
 ---
 
-## Basic Usage
+## Quick Start
 
 ### Import CSV or JSON
 
-```bash
+```
 sqtab import data.csv users
 ```
 
-### View table schema
+### Inspect table schema
 
-```bash
+```
 sqtab tables --schema
 ```
 
 ### Run SQL queries
 
-```bash
+```
 sqtab sql "SELECT * FROM users;"
 ```
 
-### Export a table to CSV
+### Export a table
 
-```bash
-sqtab export users users_export.csv
+```
+sqtab export users users.csv
 ```
 
-### Reset the database
+### Reset the local SQLite database
 
-```bash
+```
 sqtab reset
 ```
 
-For a full list of commands:
+For all commands:
 
-```bash
+```
 sqtab --help
+```
+
+---
+
+## AI-Assisted Analysis
+
+sqtab can analyze table structure and data using an AI model (OpenAI API).
+
+### Basic usage
+
+```
+sqtab analyze users --ai
+```
+
+### Custom tasks and rules
+
+You can define exactly what the AI should do:
+
+```
+sqtab analyze users --ai \
+    --task "Identify data issues" \
+    --task "Suggest useful SQL queries" \
+    --rule "Be concise"
+```
+
+### Load tasks and rules from files
+
+```
+sqtab analyze users --ai --tasks-file tasks.txt --rules-file rules.txt
+```
+
+Requires environment variable or `.env` file:
+
+```
+OPENAI_API_KEY=your-key-here
 ```
 
 ---
 
 ## Project Status
 
-sqtab is in early development (0.x releases).  
-Feedback and contributions are welcome.
+sqtab is in early active development (0.x releases).  
+The CLI is stable; features may expand based on feedback.
 
-Source code:  
+Contributions, issues, and suggestions are welcome.
+
+GitHub repository:  
 https://github.com/gojankovic/sqtab
 
+---
 
 ## License
 
