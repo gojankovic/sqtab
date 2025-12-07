@@ -21,6 +21,7 @@ from sqtab.exporter import export_csv, export_json
 from sqtab.analyzer import analyze_table, run_ai_analysis
 from sqtab.logger import log
 from sqtab.db import DB_PATH, get_conn
+from sqtab.ai_sql import generate_sql_from_nl
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -125,6 +126,44 @@ def sql_command(query: str):
         raise typer.Exit(code=1)
     finally:
         conn.close()
+
+@app.command("sql-ai")
+def sql_ai(
+    question: str = typer.Argument(..., help="Natural language query"),
+    execute: bool = typer.Option(True, "--exec/--no-exec", help="Execute the generated SQL")
+):
+    """
+    Generate SQL from a natural-language question using AI.
+    Example: sqtab sql-ai "show users older than 30"
+    """
+    sql = generate_sql_from_nl(question)
+    console = Console()
+    console.print("[bold cyan]Generated SQL:[/]")
+    console.print(sql)
+
+    if not execute:
+        return
+
+    conn = get_conn()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(sql)
+        rows = cur.fetchall()
+        conn.close()
+    except Exception as e:
+        console.print(f"[red]Error executing SQL: {e}[/red]")
+        return
+
+    # Pretty print results
+    if rows:
+        columns = [desc[0] for desc in cur.description]
+        table = Table(*columns)
+        for row in rows:
+            table.add_row(*[str(x) for x in row])
+        console.print(table)
+    else:
+        console.print("[yellow]No results.[/yellow]")
 
 
 @app.command("tables")

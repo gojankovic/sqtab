@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sqtab"
 version = "0.1.7"
-description = "Minimalist SQLite-based CLI tool for working with tabular data."
+description = "Minimalist SQLite-based CLI tool with AI assistance for working with tabular data."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.10"
 

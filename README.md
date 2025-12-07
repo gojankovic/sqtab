@@ -4,7 +4,7 @@
 [![Python Versions](https://img.shields.io/pypi/pyversions/sqtab.svg)](https://pypi.org/project/sqtab/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**sqtab** is a minimal command-line toolkit for working with tabular data
+**sqtab** is a minimal command-line toolkit with AI assistance for working with tabular data
 (CSV / JSON) using SQLite as a lightweight local database layer.
 
 It is designed for developers, data analysts, and engineers who need a fast,
