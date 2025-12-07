@@ -7,14 +7,13 @@ Commands are currently skeletons and will be implemented in future commits.
 
 import os
 import sqlite3
+from importlib.metadata import version, PackageNotFoundError
 from typing import List, Optional
 
 import typer
 
 from datetime import datetime
 from rich.console import Console
-from rich.markdown import Markdown
-from rich.panel import Panel
 from rich.table import Table
 from pathlib import Path
 from sqtab.importer import import_file
@@ -37,7 +36,11 @@ def version():
     """
     Show the current sqtab version.
     """
-    typer.echo("sqtab version 0.0.1")
+    try:
+        v = version("sqtab")
+        typer.echo(f"sqtab version {v}")
+    except PackageNotFoundError:
+        typer.echo("sqtab version unknown (package not found)")
 
 
 @app.command("import")
