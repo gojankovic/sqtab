@@ -23,10 +23,32 @@ from sqtab.logger import log
 from sqtab.db import DB_PATH, get_conn
 from sqtab.ai_sql import generate_sql_from_nl
 from dotenv import load_dotenv
-load_dotenv()
+
+def init_env():
+    """Load environment variables for sqtab from expected locations."""
+
+    # 1) Local project .env (preferred)
+    local_env = Path.cwd() / ".env"
+    if local_env.exists():
+        load_dotenv(local_env)
+        return
+
+    # 2) User home .env (fallback)
+    home_env = Path.home() / ".env"
+    if home_env.exists():
+        load_dotenv(home_env)
+        return
+
+    # 3) ~/.sqtab/.env (global sqtab config)
+    sqtab_env = Path.home() / ".sqtab" / ".env"
+    if sqtab_env.exists():
+        load_dotenv(sqtab_env)
+        return
+
+# Load variables on module import
+init_env()
 
 app = typer.Typer(help="sqtab - Minimal CLI for tabular data (CSV/JSON + SQLite).")
-
 console = Console()
 
 EXPORT_DIR = Path("exports")
