@@ -4,9 +4,8 @@ import re
 from textwrap import dedent
 from openai import OpenAI
 from pygments.lexers import sql
-
 from sqtab.db import get_conn
-from sqtab.prompt_utils import get_ai_model
+from sqtab.config import require_api_key, get_ai_model, get_debug
 
 
 def _get_schema() -> dict:
@@ -33,13 +32,17 @@ def _get_schema() -> dict:
 
 def generate_sql_from_nl(question: str) -> str:
     """Convert natural-language question into a valid SQLite SQL query."""
-
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError("OPENAI_API_KEY not set")
+    api_key = require_api_key()
 
     client = OpenAI(api_key=api_key)
     schema = _get_schema()
+    model = get_ai_model()
+
+    # Debug output
+    if get_debug():
+        import sys
+        print(f"[sqtab] Using AI model: {model}", file=sys.stderr)
+        print(f"[sqtab] Schema tables: {list(schema.keys())}", file=sys.stderr)
 
     prompt = dedent(f"""
     You are a senior SQL engineer. Generate a valid SQLite SQL query.
@@ -60,7 +63,6 @@ def generate_sql_from_nl(question: str) -> str:
     Return only SQL:
     """)
 
-    model = get_ai_model()
     print(f"[sqtab] Using AI model: {model}")
 
     res = client.chat.completions.create(

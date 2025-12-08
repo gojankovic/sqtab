@@ -22,31 +22,12 @@ from sqtab.analyzer import analyze_table, run_ai_analysis
 from sqtab.logger import log
 from sqtab.db import DB_PATH, get_conn
 from sqtab.ai_sql import generate_sql_from_nl
-from dotenv import load_dotenv
 
-def init_env():
-    """Load environment variables for sqtab from expected locations."""
+# Load configuration FIRST
+from sqtab.config import load_env, is_ai_available
 
-    # 1) Local project .env (preferred)
-    local_env = Path.cwd() / ".env"
-    if local_env.exists():
-        load_dotenv(local_env)
-        return
-
-    # 2) User home .env (fallback)
-    home_env = Path.home() / ".env"
-    if home_env.exists():
-        load_dotenv(home_env)
-        return
-
-    # 3) ~/.sqtab/.env (global sqtab config)
-    sqtab_env = Path.home() / ".sqtab" / ".env"
-    if sqtab_env.exists():
-        load_dotenv(sqtab_env)
-        return
-
-# Load variables on module import
-init_env()
+# Ensure environment is loaded
+load_env()
 
 app = typer.Typer(help="sqtab - Minimal CLI for tabular data (CSV/JSON + SQLite).")
 console = Console()
@@ -159,8 +140,19 @@ def sql_ai(
     Generate SQL from a natural-language question using AI.
     Example: sqtab sql-ai "show users older than 30"
     """
-    sql = generate_sql_from_nl(question)
-    console = Console()
+    if not is_ai_available():
+        console.print("[bold red]AI features require OpenAI API key.[/]")
+        console.print("\nSet your API key in .env file:")
+        console.print("  OPENAI_API_KEY=sk-...")
+        console.print("\nOr run: [cyan]sqtab setup[/]")
+        raise typer.Exit(1)
+
+    try:
+        sql = generate_sql_from_nl(question)
+    except RuntimeError as e:
+        console.print(f"[bold red]Error:[/] {e}")
+        raise typer.Exit(1)
+
     console.print("[bold cyan]Generated SQL:[/]")
     console.print(sql)
 

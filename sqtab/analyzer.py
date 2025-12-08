@@ -7,11 +7,8 @@ about the dataset.
 
 This is the initial skeleton; full implementation will follow.
 """
-import json
-import os
 from pathlib import Path
 from typing import List
-
 from sqtab.db import get_conn
 from openai import OpenAI
 
@@ -28,8 +25,8 @@ from .prompt_utils import (
     schema_to_markdown,
     samples_to_markdown,
     validate_list,
-    get_ai_model
 )
+from sqtab.config import require_api_key, get_ai_model, get_debug, is_ai_available
 
 def analyze_table(table: str) -> dict:
     """
@@ -89,10 +86,14 @@ def run_ai_analysis(table: str, info: dict, tasks: List[str], rules: List[str]) 
     Perform AI analysis using prompt templates, markdown formatting,
     and validated tasks/rules.
     """
+    api_key = require_api_key()
+    client = OpenAI(api_key=api_key)
+    model = get_ai_model()
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return "AI analysis unavailable: please set OPENAI_API_KEY in .env"
+    # Debug output
+    if get_debug():
+        import sys
+        print(f"[sqtab] Using AI model: {model}", file=sys.stderr)
 
     # Validate inputs
     tasks = validate_list("Tasks", tasks)
@@ -116,10 +117,6 @@ def run_ai_analysis(table: str, info: dict, tasks: List[str], rules: List[str]) 
 
     # Fill template
     user_prompt = template.substitute(**context)
-
-    client = OpenAI(api_key=api_key)
-
-    model = get_ai_model()
     print(f"[sqtab] Using AI model: {model}")
 
     response = client.chat.completions.create(
