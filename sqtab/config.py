@@ -41,13 +41,9 @@ def _find_env_file() -> Optional[Path]:
 
     return None
 
-def load_env() -> bool:
-    """
-    Load environment variables from .env file.
 
-    Returns:
-        True if .env was loaded, False otherwise.
-    """
+def load_env() -> bool:
+    """Load environment variables from .env file, supporting UTF-8 BOM."""
     global _ENV_LOADED
 
     if _ENV_LOADED:
@@ -55,18 +51,40 @@ def load_env() -> bool:
 
     env_file = _find_env_file()
 
-    if env_file:
-        load_dotenv(env_file)
+    if not env_file:
+        if os.getenv("SQTA_DEBUG"):
+            print("[sqtab] No .env file found", file=sys.stderr)
+        return False
+
+    try:
+        with open(env_file, 'r', encoding='utf-8-sig') as f:
+            lines = f.readlines()
+
+        env_vars = {}
+        for line in lines:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+
+            if '=' in line:
+                key, value = line.split('=', 1)
+                env_vars[key.strip()] = value.strip()
+
+        for key, value in env_vars.items():
+            os.environ[key] = value
+
         _ENV_LOADED = True
 
         if os.getenv("SQTA_DEBUG"):
-            print(f"[sqtab] Loaded environment from: {env_file}", file=sys.stderr)
+            print(f"[sqtab] Loaded {len(env_vars)} variables from: {env_file}", file=sys.stderr)
+            if "OPENAI_API_KEY" in env_vars:
+                masked = env_vars["OPENAI_API_KEY"][:4] + "..." + env_vars["OPENAI_API_KEY"][-4:]
+                print(f"[sqtab] API Key loaded: {masked}", file=sys.stderr)
 
         return True
-    else:
-        # No .env file found - that's OK, AI features just won't work
-        if os.getenv("SQTA_DEBUG"):
-            print("[sqtab] No .env file found", file=sys.stderr)
+
+    except Exception as e:
+        print(f"[sqtab] Error loading .env file {env_file}: {e}", file=sys.stderr)
         return False
 
 def get_api_key() -> Optional[str]:
@@ -80,6 +98,7 @@ def get_api_key() -> Optional[str]:
         load_env()
 
     return os.getenv("OPENAI_API_KEY")
+
 
 def require_api_key() -> str:
     """

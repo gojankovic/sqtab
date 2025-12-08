@@ -143,8 +143,7 @@ def sql_ai(
     if not is_ai_available():
         console.print("[bold red]AI features require OpenAI API key.[/]")
         console.print("\nSet your API key in .env file:")
-        console.print("  OPENAI_API_KEY=sk-...")
-        console.print("\nOr run: [cyan]sqtab setup[/]")
+        console.print("OPENAI_API_KEY=sk-...")
         raise typer.Exit(1)
 
     try:
